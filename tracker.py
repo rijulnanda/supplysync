@@ -6,7 +6,14 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
 from email import encoders
+import time
 
+# Set up the page config with theme and title
+st.set_page_config(
+    page_title="Inventory Tracker",
+    page_icon="📦",
+    layout="wide",  # Makes the content more expansive
+)
 
 # Initialize session state for the DataFrame, original values, waitlist, and count
 if 'df' not in st.session_state:
@@ -59,17 +66,19 @@ def send_email_smtp(recipient_email, subject, body, attachment_bytes, filename):
 # Inventory tracker function with email sending feature
 def inventory_tracker():
     st.title("Inventory Tracker")
+    upload_file = pd.read_csv('updated_inventory.csv')
 
-    # File uploader for CSV
-    upload_file = st.file_uploader("Choose a CSV File", type="csv")
-
+    # # File uploader for CSV
+    # upload_file = st.file_uploader("Choose a CSV File", type="csv")
+        
     # Initialize session state if not already initialized
     if 'df' not in st.session_state:
         st.session_state.df = None
 
     if upload_file is not None:
         # Load the CSV only if it's not already loaded
-        st.session_state.df = pd.read_csv(upload_file)
+        st.session_state.df = upload_file
+        # pd.read_csv(upload_file)
 
         # Convert 'Number' column to numeric
         st.session_state.df['Number'] = pd.to_numeric(st.session_state.df['Number'], errors='coerce').fillna(0).astype(int)
@@ -112,23 +121,33 @@ def inventory_tracker():
                 with col5:
                     st.write(row['Location'])
 
-                # Dropdown to select amount to decrease
-                amount_to_decrease = st.number_input(
-                    f"Amount to decrease for {row['Item']}",
+                # Dropdown to select amount to change
+                amount_to_change = st.number_input(
+                    f"Amount to change for {row['Item']}",
                     min_value=1,
-                    max_value=row['Number'],  # Max value is the current count
+                    max_value=100,  # This is the maximum number users can input (you can adjust this limit)
                     value=1,  # Default value
-                    key=f"decrease_amount_{row.name}"  # Use row name to ensure unique keys
+                    key=f"change_amount_{row.name}"  # Use row name to ensure unique keys
                 )
 
-                # Button to decrease the count
-                if st.button("Decrease", key=f"decrease_{row.name}"):
-                    if df.at[row.name, 'Number'] >= amount_to_decrease:
-                        df.at[row.name, 'Number'] -= amount_to_decrease
+                # Buttons to decrease or increase the count
+                col_decrease, col_increase = st.columns(2)  # Create 2 columns for the buttons
+
+                with col_decrease:
+                    if st.button(f"Decrease for {row['Item']}", key=f"decrease_{row.name}"):
+                        if df.at[row.name, 'Number'] >= amount_to_change:
+                            df.at[row.name, 'Number'] -= amount_to_change
+                            st.session_state.df.at[row.name, 'Number'] = df.at[row.name, 'Number']  # Update session state
+                            st.success(f"Decreased count for {row['Item']} by {amount_to_change}! New count: {df.at[row.name, 'Number']}")
+                        else:
+                            st.warning(f"Count for {row['Item']} cannot be decreased below zero.")
+
+                with col_increase:
+                    if st.button(f"Increase for {row['Item']}", key=f"increase_{row.name}"):
+                        df.at[row.name, 'Number'] += amount_to_change
                         st.session_state.df.at[row.name, 'Number'] = df.at[row.name, 'Number']  # Update session state
-                        st.success(f"Decreased count for {row['Item']} by {amount_to_decrease}! New count: {df.at[row.name, 'Number']}")
-                    else:
-                        st.warning(f"Count for {row['Item']} cannot be decreased below zero.")
+                        st.success(f"Increased count for {row['Item']} by {amount_to_change}! New count: {df.at[row.name, 'Number']}")
+
 
             # Show updated counts after interaction
             st.subheader("Updated Inventory")
@@ -172,7 +191,6 @@ def inventory_tracker():
     else:
         st.info("Please upload a CSV file to begin.")
 
-    st.info("Use the filters to select items and decrease counts.")
     st.info("NOTE: order of sheet must be Item, Dose, Number, Medium, Boxes, Location")
 
 # Function for waitlist page
@@ -201,15 +219,27 @@ def waitlist_page():
     # Remove a name from the waitlist
     if not st.session_state.waitlist.empty:
         name_to_remove = st.selectbox("Select a name to remove from the waitlist", st.session_state.waitlist['Name'])
+        
+        # Only show the remove button if a name is selected
         if st.button("Remove from Waitlist"):
+            # Remove the selected name from the waitlist
             st.session_state.waitlist = st.session_state.waitlist[st.session_state.waitlist['Name'] != name_to_remove]
             #st.session_state.total_added -= 1  # Decrement total added count
             st.success(f"{name_to_remove} has been removed from the waitlist!")
+
+            # Pause for a brief moment to display the success message
+            time.sleep(1)  # 1-second delay to allow the success message to show
+
+            # Now trigger the rerun to refresh the list and UI
+            st.experimental_rerun()
+
     # Reset button to clear the waitlist
     if st.button("Reset Waitlist"):
         st.session_state.waitlist = pd.DataFrame(columns=["Name"])
         st.session_state.total_added = 0
         st.success("Waitlist has been reset!")
+        time.sleep(1)
+        st.experimental_rerun()
 
     # Display the total count of people added
     st.subheader("Total Added to Waitlist")
