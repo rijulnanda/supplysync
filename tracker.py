@@ -196,9 +196,6 @@ def inventory_tracker():
 def waitlist_page():
     st.title("Waitlist")
 
-    # Fetch current waitlist from Redis
-    waitlist_df = get_waitlist()
-
     # Input for user name
     name = st.text_input("Enter your name to join the waitlist")
 
@@ -207,25 +204,25 @@ def waitlist_page():
         if name:
             # Append the name to the waitlist DataFrame
             new_entry = pd.DataFrame([[name]], columns=["Name"])
-            waitlist_df = pd.concat([waitlist_df, new_entry], ignore_index=True)
-            set_waitlist(waitlist_df)
+            st.session_state.waitlist = pd.concat([st.session_state.waitlist, new_entry], ignore_index=True)
+            st.session_state.total_added += 1  # Increment total added count
             st.success(f"{name} has been added to the waitlist!")
         else:
             st.warning("Please enter a name.")
 
     # Display the waitlist
     st.subheader("Current Waitlist")
-    st.write(waitlist_df)
+    st.write(st.session_state.waitlist)
 
     # Remove a name from the waitlist
-    if not waitlist_df.empty:
-        name_to_remove = st.selectbox("Select a name to remove from the waitlist", waitlist_df['Name'])
-
+    if not st.session_state.waitlist.empty:
+        name_to_remove = st.selectbox("Select a name to remove from the waitlist", st.session_state.waitlist['Name'])
+        
         # Only show the remove button if a name is selected
         if st.button("Remove from Waitlist"):
             # Remove the selected name from the waitlist
-            waitlist_df = waitlist_df[waitlist_df['Name'] != name_to_remove]
-            set_waitlist(waitlist_df)
+            st.session_state.waitlist = st.session_state.waitlist[st.session_state.waitlist['Name'] != name_to_remove]
+            #st.session_state.total_added -= 1  # Decrement total added count
             st.success(f"{name_to_remove} has been removed from the waitlist!")
 
             # Pause for a brief moment to display the success message
@@ -236,19 +233,19 @@ def waitlist_page():
 
     # Reset button to clear the waitlist
     if st.button("Reset Waitlist"):
-        waitlist_df = pd.DataFrame(columns=["Name"])
-        set_waitlist(waitlist_df)
+        st.session_state.waitlist = pd.DataFrame(columns=["Name"])
+        st.session_state.total_added = 0
         st.success("Waitlist has been reset!")
         time.sleep(1)
         st.experimental_rerun()
 
     # Display the total count of people added
     st.subheader("Total Added to Waitlist")
-    st.write(len(waitlist_df))
+    st.write(st.session_state.total_added)
 
     # Display the next person on the waitlist
-    if not waitlist_df.empty:
-        next_person = waitlist_df.iloc[0]['Name']  # Get the first person in the waitlist
+    if not st.session_state.waitlist.empty:
+        next_person = st.session_state.waitlist.iloc[0]['Name']  # Get the first person in the waitlist
         st.markdown(f"<h1 style='text-align: center;'>Next Up: {next_person}</h1>", unsafe_allow_html=True)
 
 # Sidebar for navigation
