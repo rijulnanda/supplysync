@@ -193,25 +193,6 @@ def inventory_tracker():
 
     st.info("NOTE: order of sheet must be Item, Dose, Number, Medium, Boxes, Location")
 
-# Function for waitlist page
-import redis
-import json
-import time
-
-# Connect to Redis (make sure Redis is running locally or on a server)
-r = redis.StrictRedis(host='localhost', port=6379, db=0, decode_responses=True)
-
-def get_waitlist():
-    # Fetch the waitlist from Redis (or an empty list if not set)
-    waitlist_data = r.get('waitlist')
-    if waitlist_data:
-        return pd.DataFrame(json.loads(waitlist_data))
-    return pd.DataFrame(columns=["Name"])
-
-def set_waitlist(waitlist_df):
-    # Store the waitlist in Redis as a JSON string
-    r.set('waitlist', waitlist_df.to_json(orient="records"))
-
 def waitlist_page():
     st.title("Waitlist")
 
