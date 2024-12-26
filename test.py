@@ -1,5 +1,6 @@
 import firebase_admin
 from firebase_admin import credentials, db
+import streamlit as st
 
 # Retrieve credentials and database URL from secrets
 firebase_credentials = st.secrets["firebase"]["credentials"]
