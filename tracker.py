@@ -30,7 +30,7 @@ from firebase_admin import credentials, db
 import json
 
 # Load the credentials from st.secrets
-cred = json.loads('mhsupplysync-firebase-adminsdk-k4jjf-d0bf272b67.json')
+cred = json.loads('./mhsupplysync-firebase-adminsdk-k4jjf-d0bf272b67.json')
 
 # Initialize Firebase
 firebase_admin.initialize_app(credentials.Certificate(cred), {
