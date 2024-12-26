@@ -40,7 +40,7 @@ firebase_admin.initialize_app(cred)
 
 # Initialize Firebase
 firebase_admin.initialize_app(credentials.Certificate(cred), {
-    'databaseURL': 'https://mhsupplysync-default-rtdb.firebaseio.com/' 
+    'databaseURL': database_url 
 })
 
 # # Load the credentials from st.secrets
