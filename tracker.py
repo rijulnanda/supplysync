@@ -34,14 +34,6 @@ if not firebase_admin._apps:
         'databaseURL': 'https://mhsupplysync-default-rtdb.firebaseio.com/'  # Replace with your actual Firebase Realtime Database URL
     })
 
-def get_waitlist():
-    ref = db.reference('waitlist')  # "waitlist" is the path in Firebase
-    return pd.DataFrame(ref.get()) if ref.get() else pd.DataFrame(columns=["Name"])  # Return waitlist data from Firebase
-
-def set_waitlist(waitlist_df):
-    ref = db.reference('waitlist')
-    ref.set(waitlist_df.to_dict(orient='records'))  # Save the waitlist to Firebase
-
 # Function to send email using SMTP
 def send_email_smtp(recipient_email, subject, body, attachment_bytes, filename):
     sender_email = "supplysync03@gmail.com"  # Your Gmail email address
@@ -81,7 +73,6 @@ def send_email_smtp(recipient_email, subject, body, attachment_bytes, filename):
         print(f"General Error: {e}")
         return False
 
-
 # Helper functions to get and set data to Firebase
 def get_inventory():
     ref = db.reference('inventory')  # "inventory" is the path in Firebase
@@ -94,6 +85,35 @@ def get_inventory():
 def set_inventory(df):
     ref = db.reference('inventory')
     ref.set(df.to_dict(orient='records'))  # Save the dataframe to Firebase
+
+def get_waitlist():
+    ref = db.reference('waitlist')  # Reference to the 'waitlist' node in Firebase
+    waitlist_data = ref.get()
+    if waitlist_data:
+        # If data exists, return as DataFrame, including 'Status' column
+        return pd.DataFrame(waitlist_data)
+    else:
+        return pd.DataFrame(columns=["Name", "Status"])  # Default empty columns
+
+def set_waitlist(waitlist_df):
+    ref = db.reference('waitlist')  # Reference to the 'waitlist' node in Firebase
+    ref.set(waitlist_df.to_dict(orient='records'))  # Save the DataFrame with 'Status' to Firebase
+
+# Function to classify a person on the waitlist as "New" or "Established"
+def classify_person(name, status, waitlist_df):
+    waitlist_df.loc[waitlist_df['Name'] == name, 'Status'] = status  # Update the 'Status' column
+    set_waitlist(waitlist_df)  # Update Firebase with the new status
+
+# Firebase helper function to get the current 'total_added' count
+def get_total_added_count():
+    ref = db.reference('total_added')  # Reference to the 'total_added' node in Firebase
+    total_added_data = ref.get()
+    return total_added_data if total_added_data else 0  # Default to 0 if no data exists
+
+# Firebase helper function to update the 'total_added' count
+def set_total_added_count(count):
+    ref = db.reference('total_added')  # Reference to the 'total_added' node in Firebase
+    ref.set(count)  # Save the count to Firebase
 
 # Inventory tracker function with Firebase integration
 def inventory_tracker():
@@ -201,11 +221,15 @@ def inventory_tracker():
 import json
 import time
 
+# Function for waitlist page with updated total added count
 def waitlist_page():
     st.title("Waitlist")
 
-    # Fetch current waitlist from Redis
+    # Fetch current waitlist from Firebase
     waitlist_df = get_waitlist()
+
+    # Fetch the total number of people added today (from Firebase)
+    total_added_today = get_total_added_count()
 
     # Input for user name
     name = st.text_input("Enter your name to join the waitlist")
@@ -213,51 +237,84 @@ def waitlist_page():
     # Button to add to waitlist
     if st.button("Add to Waitlist"):
         if name:
-            # Append the name to the waitlist DataFrame
-            new_entry = pd.DataFrame([[name]], columns=["Name"])
+            # Append the name with a default 'Status' of "New"
+            new_entry = pd.DataFrame([[name, "New"]], columns=["Name", "Status"])
             waitlist_df = pd.concat([waitlist_df, new_entry], ignore_index=True)
-            set_waitlist(waitlist_df)
+            set_waitlist(waitlist_df)  # Update Firebase with the new waitlist
+
+            # Increment the 'total_added' count in Firebase
+            total_added_today += 1
+            set_total_added_count(total_added_today)
+
             st.success(f"{name} has been added to the waitlist!")
         else:
             st.warning("Please enter a name.")
 
-    # Display the waitlist
+    # Display the waitlist with classification
     st.subheader("Current Waitlist")
     st.write(waitlist_df)
 
+    # Add buttons to classify each person on the waitlist
+    for index, row in waitlist_df.iterrows():
+        name = row['Name']
+        status = row['Status']
+        
+        col1, col2 = st.columns(2)  # Create two columns for buttons
+
+        with col1:
+            if st.button(f"Classify as New for {name}", key=f"new_{index}"):
+                classify_person(name, "New", waitlist_df)  # Classify as "New"
+                st.success(f"{name} has been classified as New!")
+                time.sleep(2)
+                st.experimental_rerun()
+
+        with col2:
+            if st.button(f"Classify as Established for {name}", key=f"established_{index}"):
+                classify_person(name, "Established", waitlist_df)  # Classify as "Established"
+                st.success(f"{name} has been classified as Established!")
+                time.sleep(2)
+                st.experimental_rerun()
+
     # Remove a name from the waitlist
+    # Remove a name from the waitlist and Reset button in the same row
     if not waitlist_df.empty:
         name_to_remove = st.selectbox("Select a name to remove from the waitlist", waitlist_df['Name'])
 
-        # Only show the remove button if a name is selected
-        if st.button("Remove from Waitlist"):
-            # Remove the selected name from the waitlist
-            waitlist_df = waitlist_df[waitlist_df['Name'] != name_to_remove]
-            set_waitlist(waitlist_df)
-            st.success(f"{name_to_remove} has been removed from the waitlist!")
+        # Create two columns for the buttons
+        col1, col2 = st.columns(2)  # Two columns for the buttons
 
-            # Pause for a brief moment to display the success message
-            time.sleep(1)  # 1-second delay to allow the success message to show
+        with col1:
+            if st.button("Remove from Waitlist", key='remove_button'):
+                # Remove the selected name from the waitlist
+                waitlist_df = waitlist_df[waitlist_df['Name'] != name_to_remove]
+                set_waitlist(waitlist_df)  # Update Firebase after removal
+                st.success(f"{name_to_remove} has been removed from the waitlist!")
 
-            # Now trigger the rerun to refresh the list and UI
-            st.experimental_rerun()
+                # Pause for a brief moment to display the success message
+                time.sleep(1)  # 1-second delay to allow the success message to show
 
-    # Reset button to clear the waitlist
-    if st.button("Reset Waitlist"):
-        waitlist_df = pd.DataFrame(columns=["Name"])
-        set_waitlist(waitlist_df)
-        st.success("Waitlist has been reset!")
-        time.sleep(1)
-        st.experimental_rerun()
+                # Trigger the rerun to refresh the list and UI
+                st.experimental_rerun()
 
-    # Display the total count of people added
-    st.subheader("Total Added to Waitlist")
-    st.write(len(waitlist_df))
+        with col2:
+            if st.button("Reset Waitlist", key='reset_button'):
+                waitlist_df = pd.DataFrame(columns=["Name", "Status"])  # Create an empty DataFrame with 'Status' column
+                set_waitlist(waitlist_df)  # Update Firebase to reset the waitlist
+                total_added_today = 0
+                set_total_added_count(total_added_today)
+                st.success("Waitlist has been reset!")
+                time.sleep(1)  # Wait for the success message to show
+                st.experimental_rerun()  # Refresh the page to show the updated waitlist
+
+    # Display the total count of people added today
+    st.subheader("Total Added to Waitlist Today")
+    st.write(total_added_today)  # Display the total count (will not decrease when people are removed)
 
     # Display the next person on the waitlist
     if not waitlist_df.empty:
         next_person = waitlist_df.iloc[0]['Name']  # Get the first person in the waitlist
         st.markdown(f"<h1 style='text-align: center;'>Next Up: {next_person}</h1>", unsafe_allow_html=True)
+
 
 # Sidebar for navigation
 st.sidebar.title("Navigation")
