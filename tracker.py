@@ -36,7 +36,6 @@ cred_dict = json.loads(firebase_credentials)  # Convert the JSON string to a dic
 
 # Initialize Firebase with credentials
 cred = credentials.Certificate(cred_dict)
-firebase_admin.initialize_app(cred)
 
 # Initialize Firebase
 firebase_admin.initialize_app(credentials.Certificate(cred), {
