@@ -292,14 +292,14 @@ def waitlist_page():
                 classify_person(name, "New", waitlist_df)  # Classify as "New"
                 st.success(f"{name} has been classified as New!")
                 time.sleep(2)
-                st.experimental_rerun()
+                st.rerun()
 
         with col2:
             if st.button(f"Classify as Established for {name}", key=f"established_{index}"):
                 classify_person(name, "Established", waitlist_df)  # Classify as "Established"
                 st.success(f"{name} has been classified as Established!")
                 time.sleep(2)
-                st.experimental_rerun()
+                st.rerun()
 
     # Remove a name from the waitlist
     # Remove a name from the waitlist and Reset button in the same row
@@ -320,7 +320,7 @@ def waitlist_page():
                 time.sleep(1)  # 1-second delay to allow the success message to show
 
                 # Trigger the rerun to refresh the list and UI
-                st.experimental_rerun()
+                st.rerun()
 
         with col2:
             if st.button("Reset Waitlist", key='reset_button'):
@@ -330,7 +330,7 @@ def waitlist_page():
                 set_total_added_count(total_added_today)
                 st.success("Waitlist has been reset!")
                 time.sleep(1)  # Wait for the success message to show
-                st.experimental_rerun()  # Refresh the page to show the updated waitlist
+                st.rerun()  # Refresh the page to show the updated waitlist
 
     # Display the total count of people added today
     st.subheader("Total Added to Waitlist Today")
