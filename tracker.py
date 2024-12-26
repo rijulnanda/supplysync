@@ -29,20 +29,14 @@ from firebase_admin import credentials, db
 import json
 # Retrieve Firebase credentials from secrets
 
-firebase_credentials = st.secrets["firebase"]["credentials"]
-#database_url = st.secrets["firebase"]["database_url"]  # Add the database URL key
-
-cred_dict = json.loads(firebase_credentials)  # Convert the JSON string to a dictionary
-
-# Initialize Firebase with credentials
-cred = credentials.Certificate(cred_dict)
-
-#st.write(st.secrets)
-
-# Initialize Firebase
-firebase_admin.initialize_app(cred, {
-    'databaseURL': 'https://mhsupplysync-default-rtdb.firebaseio.com/'
-})
+if not firebase_admin._apps:
+    firebase_credentials = st.secrets["firebase"]["credentials"]
+    cred_dict = json.loads(firebase_credentials)  # Convert the JSON string to a dictionary
+    
+    cred = credentials.Certificate(cred_dict)
+    firebase_admin.initialize_app(cred, {
+        'databaseURL': 'https://mhsupplysync-default-rtdb.firebaseio.com/'
+    })
 
 # # Load the credentials from st.secrets
 # cred = json.loads('./mhsupplysync-firebase-adminsdk-k4jjf-d0bf272b67.json')
