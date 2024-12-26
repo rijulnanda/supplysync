@@ -26,16 +26,22 @@ if 'total_added' not in st.session_state:
 
 import firebase_admin
 from firebase_admin import credentials, db
-
 import json
 
-# Load the credentials from st.secrets
-cred = json.loads('./mhsupplysync-firebase-adminsdk-k4jjf-d0bf272b67.json')
+# Retrieve Firebase credentials from secrets
+firebase_credentials = st.secrets["firebase"]["credentials"]
+cred_dict = json.loads(firebase_credentials)  # Convert the JSON string to a dictionary
 
-# Initialize Firebase
-firebase_admin.initialize_app(credentials.Certificate(cred), {
-    'databaseURL': 'https://mhsupplysync-default-rtdb.firebaseio.com/'  # Replace with your actual Firebase Realtime Database URL
-})
+# Initialize Firebase with credentials
+cred = credentials.Certificate(cred_dict)
+firebase_admin.initialize_app(cred)
+# # Load the credentials from st.secrets
+# cred = json.loads('./mhsupplysync-firebase-adminsdk-k4jjf-d0bf272b67.json')
+
+# # Initialize Firebase
+# firebase_admin.initialize_app(credentials.Certificate(cred), {
+#     'databaseURL': 'https://mhsupplysync-default-rtdb.firebaseio.com/'  # Replace with your actual Firebase Realtime Database URL
+# })
 
 # # Fetch the credentials from Streamlit secrets
 # firebase_creds = st.secrets["firebase"]["credentials"]
