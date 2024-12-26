@@ -35,6 +35,12 @@ cred_dict = json.loads(firebase_credentials)  # Convert the JSON string to a dic
 # Initialize Firebase with credentials
 cred = credentials.Certificate(cred_dict)
 firebase_admin.initialize_app(cred)
+
+# Initialize Firebase
+firebase_admin.initialize_app(credentials.Certificate(cred), {
+    'databaseURL': 'https://mhsupplysync-default-rtdb.firebaseio.com/' 
+})
+
 # # Load the credentials from st.secrets
 # cred = json.loads('./mhsupplysync-firebase-adminsdk-k4jjf-d0bf272b67.json')
 
