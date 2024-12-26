@@ -30,7 +30,7 @@ import json
 # Retrieve Firebase credentials from secrets
 
 firebase_credentials = st.secrets["firebase"]["credentials"]
-database_url = st.secrets["firebase"]["database_url"]  # Add the database URL key
+#database_url = st.secrets["firebase"]["database_url"]  # Add the database URL key
 
 cred_dict = json.loads(firebase_credentials)  # Convert the JSON string to a dictionary
 
