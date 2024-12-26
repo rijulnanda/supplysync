@@ -27,19 +27,29 @@ if 'total_added' not in st.session_state:
 import firebase_admin
 from firebase_admin import credentials, db
 
-# Fetch the credentials from Streamlit secrets
-firebase_creds = st.secrets["firebase"]["credentials"]
-
-# Load the JSON credentials as a dictionary
 import json
-creds_dict = json.loads(firebase_creds)
 
-# Initialize Firebase Admin SDK
-if not firebase_admin._apps:
-    cred = credentials.Certificate('creds_dict')  
-    firebase_admin.initialize_app(cred, {
-        'databaseURL': 'https://mhsupplysync-default-rtdb.firebaseio.com/'  # Replace with your actual Firebase Realtime Database URL
-    })
+# Load the credentials from st.secrets
+cred = json.loads(st.secrets["firebase"]["credentials"])
+
+# Initialize Firebase
+firebase_admin.initialize_app(credentials.Certificate(cred), {
+    'databaseURL': 'https://mhsupplysync-default-rtdb.firebaseio.com/'  # Replace with your actual Firebase Realtime Database URL
+})
+
+# # Fetch the credentials from Streamlit secrets
+# firebase_creds = st.secrets["firebase"]["credentials"]
+
+# # Load the JSON credentials as a dictionary
+# import json
+# creds_dict = json.loads(firebase_creds)
+
+# # Initialize Firebase Admin SDK
+# if not firebase_admin._apps:
+#     cred = credentials.Certificate('creds_dict')  
+#     firebase_admin.initialize_app(cred, {
+#         'databaseURL': 'https://mhsupplysync-default-rtdb.firebaseio.com/'  # Replace with your actual Firebase Realtime Database URL
+#     })
 
 # Function to send email using SMTP
 def send_email_smtp(recipient_email, subject, body, attachment_bytes, filename):
