@@ -27,12 +27,24 @@ if 'total_added' not in st.session_state:
 import firebase_admin
 from firebase_admin import credentials, db
 import json
-
+firebase_credentials = {
+  "type": "service_account",
+  "project_id": "mhsupplysync",
+  "private_key_id": "d0bf272b673df01de1ca1f9e3eaca6805918c1b1",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDZfCSjYwx+hgse\nW/Y0OnYfu4Ec4v4rgBvfRubvoHohzhb2lRin1pODjYqXci3anVeIW54bMD/ZTpm8\nCXbP8lwGECjrE3MZEwmlqDnt1k1aTobbz/NqTezKOfQq0jDlrlIWnCSpouEEEJvG\nDpgWNVN7KXGAMr8IZ73Uhockob6H3ahgJWaZrNgKdCcHFlqsLGyRqF6vGxi51Jgk\nXZ/+ugU8MyjRD9G6qu0e0r/KMTVgxEKd5S/ugKVOVfkENnMHC/43ryFbnFOQLcCH\ntYRDpz3WGvRV30Rff0Ayfeep3NtzB2WDvXAetY6XXfdlQ/PrsE4LxzeTDx+ibwun\nvrPkFt7nAgMBAAECggEAAwS+mHeEpmvQ8iy2dTU9D0LnD3XpYbzB6DdHEsmhE/Xi\nhNu/BjE1aSwq7UTR2c2dzTAfX4+3XFw/jizXNbYE+UHnIWzbScUrHa9WQp1i3OoK\nZ/sLO6Jzuq+J1ridJifKO1YqT9wwPJljYgnEbEGET390FwNyoPTnKuUWni+hmzN7\nvZLk6r2nOxZlnwM3aC7q+vUepb1ZuN8jM9p7i8Mf9qTduPjxo3C4W4EsDPVGn8r0\nXeI1jPVIPLr9c3g/qy66C6VexRkRjK97q8pJfwiYK5YRZMB/PDGioyFTxedjkcrJ\nbj0w3IXOTM0HAV+gO2t6kbIeJ6+X2Q++EPhEJM/tmQKBgQDuWzarDINbY1NH5Bw+\n11/1Bf09YwjXb8hNVocHBDDu2GUhyxWKBKVfh/MDWYNGPT6a2VE0sY4K2qKZd7qp\n3F9/3S/ZbhPHkfnE9RYuWgQfH6QUxBIrEGfv5v6jtOYmG3ODIR2tNWMMKktnoDqJ\nRitC4jp/2VFMFqCG6/J862wbTQKBgQDplWxA4LnSnciZLnWce2fEf8tTUoCcnj8r\nXtw3YLkLLiPomuB2htW9Ud/V8BawGAQsY5Mo67oFfVeW8J2qKeOGBKBJ4raqdTEp\nacy6nLoswnCGeMikYFroKxCRMbWSJ1ne1rFPcqpEOA+fZFVjenA2KkB45EI8DsiH\nlhobkHRBAwKBgQC69HhwuaPebo3H+bfd4ni1azkyiRdKQ7dMUe4fJr5q2PiaBPyk\nAPjlcXC+09sPoMIWGxaCyjGrecnHrg2PZfbSB9+cH6cMBgdu4P3A5YIOF3dPgmrt\ntDSSCxD3vtA2W5nC5JquXQ2PYS073oWLXqpYD7Hqzb3ifGz05uSP7uggkQKBgFG4\n7ovwU/MlMvas84cRAegU0f1P4yFomC9DXAaf93264eNStG+jkwpOp+KAwl9Pt74U\nBHuPpaCgDtIHUxIi37CW08Gl6UTQBag4lOFBTj20tYvGnGQuNf/+eShjXORKkj3N\nnXFva7S8bHLWtq08PCAnPjFNowLCJVSSpoW4T4QjAoGBAIzdyOQlospwGiWvy4Be\n/nH/rSvsIUN6o8CQ3EUTr9+zpqTomnFO3XLD4xM93G4eimJsbs+HGgkLUcwI3iRA\nduTo7qgsTY2VqQKABKBHSQsLBIaBUhu6v9cl9E7ea+jHh8iB6rEpxFOoBtYhX7/L\nljs7uk6Pfb05tyKrPsItAUL+\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-k4jjf@mhsupplysync.iam.gserviceaccount.com",
+  "client_id": "103472904795784669235",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-k4jjf%40mhsupplysync.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
 # Retrieve Firebase credentials from secrets
-firebase_credentials = st.secrets["firebase"]["credentials"]
-database_url = st.secrets["firebase"]["database_url"]  # Add the database URL key
+#firebase_credentials = st.secrets["firebase"]["credentials"]
+#database_url = st.secrets["firebase"]["database_url"]  # Add the database URL key
 
-cred_dict = json.loads(firebase_credentials)  # Convert the JSON string to a dictionary
+#cred_dict = json.loads(firebase_credentials)  # Convert the JSON string to a dictionary
 
 # Initialize Firebase with credentials
 cred = credentials.Certificate(cred_dict)
@@ -41,7 +53,7 @@ cred = credentials.Certificate(cred_dict)
 
 # Initialize Firebase
 firebase_admin.initialize_app(cred, {
-    'databaseURL': database_url 
+    'databaseURL': 'https://mhsupplysync-default-rtdb.firebaseio.com/'
 })
 
 # # Load the credentials from st.secrets
