@@ -47,7 +47,7 @@ firebase_credentials = {
 #cred_dict = json.loads(firebase_credentials)  # Convert the JSON string to a dictionary
 
 # Initialize Firebase with credentials
-cred = credentials.Certificate(cred_dict)
+cred = credentials.Certificate(firebase_credentials)
 
 #st.write(st.secrets)
 
