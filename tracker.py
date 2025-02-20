@@ -62,7 +62,7 @@ if not firebase_admin._apps:
 #     })
 
 # Function to send email using SMTP
-def send_email_smtp(recipient_email, subject, body, attachment_bytes, filename):
+def send_email_smtp(recipient_email, subject, body, file_data_list):
     sender_email = "supplysync03@gmail.com"  # Your Gmail email address
     password = "mqyj htly sdxx xxgn"  # Your Gmail app-specific password (use if 2FA enabled)
 
@@ -75,12 +75,13 @@ def send_email_smtp(recipient_email, subject, body, attachment_bytes, filename):
     # Attach the email body text
     msg.attach(MIMEText(body, 'plain'))  # Correct way to attach a string as the email body
 
-    # Attach the Excel file
-    part = MIMEBase('application', 'octet-stream')
-    part.set_payload(attachment_bytes.getvalue())
-    encoders.encode_base64(part)
-    part.add_header('Content-Disposition', f'attachment; filename={filename}')
-    msg.attach(part)
+    # Attach multiple files
+    for file_data, filename in file_data_list:
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(file_data.getvalue())
+        encoders.encode_base64(part)
+        part.add_header('Content-Disposition', f'attachment; filename={filename}')
+        msg.attach(part)
 
     try:
         # Set up the SMTP server and send the email
@@ -221,28 +222,42 @@ def inventory_tracker():
         # Show updated counts after interaction
         st.subheader("Updated Inventory")
         st.write(df)
-
+        
+        # Display Used Items Log
+        st.subheader("Used Items Log")
+        used_items_df = get_used_items()
+        st.dataframe(used_items_df)
+    
+        # Reset button for Used Items Log
+        if st.button("Reset Used Items Log"):
+            db.reference("used_items").set({})
+            st.experimental_rerun()
+            
         # Create a BytesIO object to save the updated DataFrame as Excel
-        output = io.BytesIO()
-
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        inventory_output = io.BytesIO()
+        used_items_output = io.BytesIO()
+    
+        with pd.ExcelWriter(inventory_output, engine='openpyxl') as writer:
             df.to_excel(writer, index=False, sheet_name="Inventory")
-
-        output.seek(0)  # Rewind to the start of the BytesIO buffer
-
+        with pd.ExcelWriter(used_items_output, engine='openpyxl') as writer:
+            used_items_df.to_excel(writer, index=False, sheet_name="Used Inventory")
+    
+        inventory_output.seek(0)  # Rewind to the start of the BytesIO buffer
+        used_items_output.seek(0)
+    
         # Email sending functionality
         st.subheader("Send Updated Inventory via Email")
         
         recipient_email = st.text_input("Enter recipient email address")
         email_subject = "Updated Inventory File"
         email_body = "Attached is the updated inventory file in Excel format."
-
+    
         if st.button("Send Email"):
             if recipient_email:
                 success = send_email_smtp(
-                    recipient_email, email_subject, email_body, output, "updated_inventory.xlsx"
+                    recipient_email, email_subject, email_body, 
+                    [(inventory_output, "updated_inventory.xlsx"), (used_items_output, "used_items.xlsx")]
                 )
-
                 if success:
                     st.success(f"Email successfully sent to {recipient_email}!")
                 else:
@@ -252,16 +267,6 @@ def inventory_tracker():
 
     else:
         st.info("No items found matching the selected filter.")
-
-    # Display Used Items Log
-    st.subheader("Used Items Log")
-    used_items_df = get_used_items()
-    st.dataframe(used_items_df)
-
-    # Reset button for Used Items Log
-    if st.button("Reset Used Items Log"):
-        db.reference("used_items").set({})
-        st.experimental_rerun()
 
 # Function for waitlist page
 import json
