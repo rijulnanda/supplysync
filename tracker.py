@@ -7,6 +7,7 @@ from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
 from email import encoders
 import time
+import datetime
 
 # Set up the page config with theme and title
 st.set_page_config(
@@ -140,65 +141,72 @@ def get_total_added_count():
 def set_total_added_count(count):
     ref = db.reference('total_added')  # Reference to the 'total_added' node in Firebase
     ref.set(count)  # Save the count to Firebase
+# Function to log used items in Firebase
+def log_used_item(item_name, change):
+    ref = db.reference("used_items")
+    log_entry = {
+        "item": item_name,
+        "change": change,
+        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+    ref.push(log_entry)
+
+# Function to fetch used items log from Firebase
+def get_used_items():
+    ref = db.reference("used_items")
+    data = ref.get()
+    if not data:
+        return pd.DataFrame(columns=["Item", "Change", "Timestamp"])
+    used_items_list = [{"Item": v["item"], "Change": v["change"], "Timestamp": v["timestamp"]} for v in data.values()]
+    return pd.DataFrame(used_items_list)
 
 # Inventory tracker function with Firebase integration
 def inventory_tracker():
     st.title("Inventory Tracker")
     
-    # Fetch inventory data from Firebase
     df = get_inventory()
-    
     if df.empty:
         st.info("No inventory data found. Please upload data first.")
         return
     
-    # Reorder the columns to the desired order: Item, Number, Boxes, Dose, Location, Medium
     column_order = ["Item", "Number", "Boxes", "Dose", "Location", "Medium"]
-    df = df[column_order]  # This reorders the columns to the desired order
+    df = df[column_order]
 
-    # Show the inventory preview
     st.subheader("Data Preview")
     st.write(df.head())
 
     st.subheader('Filter Data')
-    columns = df.columns.tolist()
-    selected_column = st.selectbox("Select column to filter by", columns)
-    unique_values = df[selected_column].unique()
-    selected_value = st.selectbox("Select value", unique_values)
+    selected_column = st.selectbox("Select column to filter by", df.columns.tolist())
+    selected_value = st.selectbox("Select value", df[selected_column].unique())
 
     filtered_df = df[df[selected_column] == selected_value]
     if not filtered_df.empty:
         st.subheader("Filtered Inventory Items")
-        
+
         for index, row in filtered_df.iterrows():
-            col1, col2, col3, col4, col5 = st.columns([2, 2, 1, 2, 1])  # Adjust column sizes
+            col1, col2, col3, col4, col5 = st.columns([2, 2, 1, 2, 1])
             
             with col1:
                 st.write(row['Item'])
-            
             with col2:
                 st.write(row['Dose'])
-            
             with col3:
-                st.write(row['Number'])  # Display current count
-            
+                st.write(row['Number'])
             with col4:
                 st.write(row['Medium'])
-            
             with col5:
                 st.write(row['Location'])
 
-            # Dropdown to select amount to change
             amount_to_change = st.number_input(f"Amount to change for {row['Item']}", min_value=1, max_value=100, value=1)
 
-            # Buttons to decrease or increase the count
-            col_decrease, col_increase = st.columns(2)  # Create 2 columns for the buttons
-
+            col_decrease, col_increase = st.columns(2)
+            
             with col_decrease:
                 if st.button(f"Decrease for {row['Item']}", key=f"decrease_{row.name}"):
                     if df.at[row.name, 'Number'] >= amount_to_change:
                         df.at[row.name, 'Number'] -= amount_to_change
-                        set_inventory(df)  # Save updated inventory to Firebase
+                        set_inventory(df)  # Save updated inventory
+                        log_used_item(row['Item'], -amount_to_change)  # Log decrease
                         st.success(f"Decreased count for {row['Item']} by {amount_to_change}! New count: {df.at[row.name, 'Number']}")
                     else:
                         st.warning(f"Count for {row['Item']} cannot be decreased below zero.")
@@ -206,42 +214,25 @@ def inventory_tracker():
             with col_increase:
                 if st.button(f"Increase for {row['Item']}", key=f"increase_{row.name}"):
                     df.at[row.name, 'Number'] += amount_to_change
-                    set_inventory(df)  # Save updated inventory to Firebase
+                    set_inventory(df)  # Save updated inventory
+                    log_used_item(row['Item'], amount_to_change)  # Log increase
                     st.success(f"Increased count for {row['Item']} by {amount_to_change}! New count: {df.at[row.name, 'Number']}")
 
-        # Show updated counts after interaction
         st.subheader("Updated Inventory")
         st.write(df)
 
-        # Create a BytesIO object to save the updated DataFrame as Excel
-        output = io.BytesIO()
-
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name="Inventory")
-
-        output.seek(0)  # Rewind to the start of the BytesIO buffer
-
-        # Email sending functionality
-        st.subheader("Send Updated Inventory via Email")
-        
-        recipient_email = st.text_input("Enter recipient email address")
-        email_subject = "Updated Inventory File"
-        email_body = "Attached is the updated inventory file in Excel format."
-
-        if st.button("Send Email"):
-            if recipient_email:
-                success = send_email_smtp(
-                    recipient_email, email_subject, email_body, output, "updated_inventory.xlsx"
-                )
-
-                if success:
-                    st.success(f"Email successfully sent to {recipient_email}!")
-                else:
-                    st.error("Failed to send email.")
-            else:
-                st.warning("Please enter a recipient email address.")
     else:
         st.info("No items found matching the selected filter.")
+
+    # Display Used Items Log
+    st.subheader("Used Items Log")
+    used_items_df = get_used_items()
+    st.dataframe(used_items_df)
+
+    # Reset button for Used Items Log
+    if st.button("Reset Used Items Log"):
+        db.reference("used_items").set({})
+        st.experimental_rerun()
 
 # Function for waitlist page
 import json
