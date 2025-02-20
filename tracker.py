@@ -218,8 +218,37 @@ def inventory_tracker():
                     log_used_item(row['Item'], amount_to_change)  # Log increase
                     st.success(f"Increased count for {row['Item']} by {amount_to_change}! New count: {df.at[row.name, 'Number']}")
 
+        # Show updated counts after interaction
         st.subheader("Updated Inventory")
         st.write(df)
+
+        # Create a BytesIO object to save the updated DataFrame as Excel
+        output = io.BytesIO()
+
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name="Inventory")
+
+        output.seek(0)  # Rewind to the start of the BytesIO buffer
+
+        # Email sending functionality
+        st.subheader("Send Updated Inventory via Email")
+        
+        recipient_email = st.text_input("Enter recipient email address")
+        email_subject = "Updated Inventory File"
+        email_body = "Attached is the updated inventory file in Excel format."
+
+        if st.button("Send Email"):
+            if recipient_email:
+                success = send_email_smtp(
+                    recipient_email, email_subject, email_body, output, "updated_inventory.xlsx"
+                )
+
+                if success:
+                    st.success(f"Email successfully sent to {recipient_email}!")
+                else:
+                    st.error("Failed to send email.")
+            else:
+                st.warning("Please enter a recipient email address.")
 
     else:
         st.info("No items found matching the selected filter.")
