@@ -231,7 +231,7 @@ def inventory_tracker():
         # Reset button for Used Items Log
         if st.button("Reset Used Items Log"):
             db.reference("used_items").set({})
-            st.experimental_rerun()
+            st.rerun()
             
         # Create a BytesIO object to save the updated DataFrame as Excel
         inventory_output = io.BytesIO()
