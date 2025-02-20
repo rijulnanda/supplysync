@@ -248,7 +248,7 @@ def inventory_tracker():
         # Email sending functionality
         st.subheader("Send Updated Inventory via Email")
         
-        recipient_email = st.text_input("Enter recipient email address")
+        recipient_email = 'rijulnanda@tamu.edu'
         email_subject = "Updated Inventory File"
         email_body = "Attached is the updated inventory file in Excel format."
     
