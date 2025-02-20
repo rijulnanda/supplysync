@@ -172,8 +172,8 @@ def inventory_tracker():
     column_order = ["Item", "Number", "Boxes", "Dose", "Location", "Medium"]
     df = df[column_order]
 
-    st.subheader("Data Preview")
-    st.write(df.head())
+    # st.subheader("Data Preview")
+    # st.write(df.head())
 
     st.subheader('Filter Data')
     selected_column = st.selectbox("Select column to filter by", df.columns.tolist())
